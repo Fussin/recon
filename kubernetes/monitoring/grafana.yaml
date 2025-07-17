@@ -1,0 +1,50 @@
+apiVersion: integreatly.org/v1alpha1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: autonomouspen-ai
+spec:
+  # Add your Grafana spec here
+  # For example:
+  # config:
+  #   log:
+  #     mode: "console"
+  #   auth.anonymous:
+  #     enabled: true
+  #     org_role: "Viewer"
+  #   datasources:
+  #     - name: "Prometheus"
+  #       type: "prometheus"
+  #       access: "proxy"
+  #       url: "http://prometheus:9090"
+  #       is_default: true
+  #       version: 1
+  #       editable: true
+  #       jsonData:
+  #         timeInterval: "5s"
+  #         graphiteVersion: "1.1"
+  #         tlsAuth: false
+  #         tlsAuthWithCACert: false
+  #       secureJsonData:
+  #         tlsCACert: ""
+  #         tlsClientCert: ""
+  #         tlsClientKey: ""
+  #   notifiers:
+  #     - name: "slack"
+  #       type: "slack"
+  #       uid: "slack-notifier"
+  #       is_default: true
+  #       settings:
+  #         url: "your-slack-webhook-url"
+  #         recipient: "#your-channel"
+  #         uploadImage: true
+  #         token: "your-slack-token"
+  #   dashboardProviders:
+  - name: 'default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards/default

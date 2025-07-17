@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  scanner:
+    build: ./scanner
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: autonomouspen
+      POSTGRES_USER: autonomouspen
+      POSTGRES_PASSWORD: autonomouspen
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+  ai-engine:
+    build: ./ai-engine
+  blockchain-node:
+    build: ./blockchain-node

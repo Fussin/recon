@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recon
+  template:
+    metadata:
+      labels:
+        app: recon
+    spec:
+      containers:
+      - name: recon
+        image: autonomouspen/recon:latest
+        ports:
+        - containerPort: 8081

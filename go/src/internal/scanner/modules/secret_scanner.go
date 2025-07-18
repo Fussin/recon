@@ -11,12 +11,13 @@ import (
 )
 
 type SecretExposureScanner struct {
-	// regex patterns for secrets
+	client   *http.Client
 	patterns map[string]*regexp.Regexp
 }
 
 func NewSecretExposureScanner() *SecretExposureScanner {
 	return &SecretExposureScanner{
+		client: &http.Client{},
 		patterns: map[string]*regexp.Regexp{
 			"AWS Key":        regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
 			"AWS Secret":     regexp.MustCompile(`[0-9a-zA-Z/+=]{40}`),
@@ -31,12 +32,9 @@ func NewSecretExposureScanner() *SecretExposureScanner {
 }
 
 func (s *SecretExposureScanner) Scan(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// This is a simplified scanner. A real implementation would:
-	// - Crawl the target to find all pages and JS files
-	// - Analyze the content of each page and file for secrets
-	// For now, we'll just scan the main page content.
-
-	resp, err := http.Get(target.URL)
+	// In a real implementation, we would crawl the target and analyze all responses.
+	// For this example, we'll just scan the main page.
+	resp, err := s.client.Get(target.URL)
 	if err != nil {
 		return
 	}
@@ -50,12 +48,12 @@ func (s *SecretExposureScanner) Scan(ctx context.Context, target *Target, result
 	for name, pattern := range s.patterns {
 		matches := pattern.FindAllString(string(body), -1)
 		for _, match := range matches {
-			vuln := &scanner.Vulnerability{
-				Name:     "Secret Exposure",
-				Severity: "High",
-				Description:  fmt.Sprintf("Found %s: %s", name, match),
+			results <- &scanner.Vulnerability{
+				Name:        "Secret Exposure",
+				Severity:    "High",
+				Description: fmt.Sprintf("Found %s in response from %s", name, target.URL),
+				Evidence:    match,
 			}
-			results <- vuln
 		}
 	}
 
@@ -64,6 +62,26 @@ func (s *SecretExposureScanner) Scan(ctx context.Context, target *Target, result
 	s.findGitRepositories(ctx, target, results)
 	s.findSourceMaps(ctx, target, results)
 	s.findBackupFiles(ctx, target, results)
+}
+
+func (s *SecretExposureScanner) findEnvFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
+	// Implementation for finding .env files
+}
+
+func (s *SecretExposureScanner) findConfigFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
+	// Implementation for finding config files
+}
+
+func (s *SecretExposureScanner) findGitRepositories(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
+	// Implementation for finding git repositories
+}
+
+func (s *SecretExposureScanner) findSourceMaps(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
+	// Implementation for finding source maps
+}
+
+func (s *SecretExposureScanner) findBackupFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
+	// Implementation for finding backup files
 }
 
 func (s *SecretExposureScanner) findAWSKeys(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
@@ -102,30 +120,10 @@ func (s *SecretExposureScanner) findCertificates(ctx context.Context, target *Ta
 	// Implementation for finding certificates
 }
 
-func (s *SecretExposureScanner) findEnvFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// Implementation for finding .env files
-}
-
-func (s *SecretExposureScanner) findConfigFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// Implementation for finding config files
-}
-
 func (s *SecretExposureScanner) findDockerCompose(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
 	// Implementation for finding docker-compose files
 }
 
 func (s *SecretExposureScanner) findKubernetesConfigs(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
 	// Implementation for finding kubernetes configs
-}
-
-func (s *SecretExposureScanner) findGitRepositories(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// Implementation for finding git repositories
-}
-
-func (s *SecretExposureScanner) findSourceMaps(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// Implementation for finding source maps
-}
-
-func (s *SecretExposureScanner) findBackupFiles(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
-	// Implementation for finding backup files
 }

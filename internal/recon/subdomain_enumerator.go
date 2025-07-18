@@ -107,7 +107,38 @@ func (s *SubdomainEnumerator) PassiveEnumeration(domain string) ([]string, error
 	var subdomains []string
 
 	// Use various APIs and databases to find subdomains.
-	// ...
+	// Crt.sh
+	crtSubdomains, err := s.crtsh(domain)
+	if err != nil {
+		return nil, err
+	}
+	subdomains = append(subdomains, crtSubdomains...)
+
+	return subdomains, nil
+}
+
+// crtsh searches crt.sh for subdomains.
+func (s *SubdomainEnumerator) crtsh(domain string) ([]string, error) {
+	var subdomains []string
+	resp, err := http.Get(fmt.Sprintf("https://crt.sh/?q=%%.%s&output=json", domain))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var results []struct {
+		NameValue string `json:"name_value"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, result := range results {
+		for _, subdomain := range strings.Split(result.NameValue, "\n") {
+			subdomains = append(subdomains, subdomain)
+		}
+	}
 
 	return subdomains, nil
 }
@@ -131,7 +162,12 @@ func (s *SubdomainEnumerator) ActiveBruteforce(domain string) ([]string, error) 
 		go func(subdomain string) {
 			defer wg.Done()
 			// Resolve the subdomain.
-			// ...
+			_, err := net.ResolveIPAddr("ip", fmt.Sprintf("%s.%s", subdomain, domain))
+			if err == nil {
+				mutex.Lock()
+				subdomains = append(subdomains, fmt.Sprintf("%s.%s", subdomain, domain))
+				mutex.Unlock()
+			}
 		}(scanner.Text())
 	}
 
@@ -161,7 +197,12 @@ func (s *SubdomainEnumerator) DNSResolution(subdomains []string) ([]string, erro
 		go func(subdomain string) {
 			defer wg.Done()
 			// Resolve the subdomain.
-			// ...
+			_, err := net.ResolveIPAddr("ip", subdomain)
+			if err == nil {
+				mutex.Lock()
+				resolvedSubdomains = append(resolvedSubdomains, subdomain)
+				mutex.Unlock()
+			}
 		}(subdomain)
 	}
 
@@ -221,7 +262,12 @@ func (s *SubdomainEnumerator) ValidateSubdomains(subdomains []string) ([]string,
 		go func(subdomain string) {
 			defer wg.Done()
 			// Validate the subdomain.
-			// ...
+			_, err := http.Get(fmt.Sprintf("http://%s", subdomain))
+			if err == nil {
+				mutex.Lock()
+				validatedSubdomains = append(validatedSubdomains, subdomain)
+				mutex.Unlock()
+			}
 		}(subdomain)
 	}
 
@@ -233,6 +279,15 @@ func (s *SubdomainEnumerator) ValidateSubdomains(subdomains []string) ([]string,
 // GenerateReport generates a report of the enumerated subdomains.
 func (s *SubdomainEnumerator) GenerateReport(domain string, subdomains []string) error {
 	// Generate a report of the enumerated subdomains.
-	// ...
+	file, err := os.Create(fmt.Sprintf("%s.txt", domain))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, subdomain := range subdomains {
+		file.WriteString(fmt.Sprintf("%s\n", subdomain))
+	}
+
 	return nil
 }

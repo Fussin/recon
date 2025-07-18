@@ -100,14 +100,50 @@ func (e *EndpointDiscoverer) Discover(url string) ([]string, error) {
 // CrawlWebsite crawls a website to discover endpoints.
 func (e *EndpointDiscoverer) CrawlWebsite(url string) ([]string, error) {
 	var endpoints []string
-	// ...
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		link, _ := s.Attr("href")
+		endpoints = append(endpoints, link)
+	})
+
 	return endpoints, nil
 }
 
 // ExtractFromJavaScript extracts endpoints from JavaScript files.
 func (e *EndpointDiscoverer) ExtractFromJavaScript(url string) ([]string, error) {
 	var endpoints []string
-	// ...
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc.Find("script").Each(func(i int, s *goquery.Selection) {
+		src, _ := s.Attr("src")
+		if src != "" {
+			// ...
+		} else {
+			vm := otto.New()
+			vm.Run(s.Text())
+			// ...
+		}
+	})
+
 	return endpoints, nil
 }
 
@@ -128,7 +164,22 @@ func (e *EndpointDiscoverer) ParameterMining(url string) ([]string, error) {
 // FormAnalysis analyzes forms to discover endpoints.
 func (e *EndpointDiscoverer) FormAnalysis(url string) ([]string, error) {
 	var endpoints []string
-	// ...
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	doc.Find("form").Each(func(i int, s *goquery.Selection) {
+		action, _ := s.Attr("action")
+		endpoints = append(endpoints, action)
+	})
+
 	return endpoints, nil
 }
 

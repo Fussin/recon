@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autonomouspen-scanner
+  namespace: autonomouspen
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: autonomouspen-scanner
+  template:
+    metadata:
+      labels:
+        app: autonomouspen-scanner
+    spec:
+      containers:
+        - name: scanner
+          image: autonomouspen/scanner:latest
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+          env:
+            - name: CONFIG_FILE
+              value: /config/config.yaml
+            - name: WORKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: reports
+              mountPath: /reports
+      volumes:
+        - name: config
+          configMap:
+            name: autonomouspen-config
+        - name: reports
+          persistentVolumeClaim:
+            claimName: reports-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autonomouspen-scanner
+  namespace: autonomouspen
+spec:
+  selector:
+    app: autonomouspen-scanner
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: http
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      name: metrics
+  type: ClusterIP
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: autonomouspen-scanner-hpa
+  namespace: autonomouspen
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: autonomouspen-scanner
+  minReplicas: 10
+  maxReplicas: 1000
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: pending_jobs
+        target:
+          type: AverageValue
+          averageValue: "30"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: autonomouspen-config
+  namespace: autonomouspen
+data:
+  config.yaml: |
+    scanner:
+      name: "AUTONOMOUSPEN AI"
+      version: "1.0.0"
+      mode: "kubernetes"
+
+      kubernetes:
+        namespace: "autonomouspen"
+        service_name: "autonomouspen-scanner"
+
+      distributed:
+        enabled: true
+        coordination_service: "autonomouspen-coordinator:8080"
+
+      # Rest of configuration...
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: autonomouspen-scheduler
+  namespace: autonomouspen
+spec:
+  schedule: "*/5 * * * *" # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: scheduler
+              image: autonomouspen/scheduler:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Fetch new targets from bug bounty platforms
+                  /app/fetch-targets
+                  # Queue targets for scanning
+                  /app/queue-targets
+          restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reports-pvc
+  namespace: autonomouspen
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: fast-ssd

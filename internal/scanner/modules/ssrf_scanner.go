@@ -1,9 +1,8 @@
 package modules
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"strings"
 
 	"github.com/autonomouspen/autonomouspen-ai/internal/scanner"
 )
@@ -18,115 +17,80 @@ func NewSSRFScanner() *SSRFScanner {
 	return &SSRFScanner{}
 }
 
-// Scan performs a scan for SSRF vulnerabilities.
-func (s *SSRFScanner) Scan(target string) ([]*scanner.Vulnerability, error) {
-	var vulnerabilities []*scanner.Vulnerability
+func (s *SSRFScanner) Scan(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// Test all SSRF vectors
+	s.testURLParameters(ctx, target, results)
+	s.testFileInclusion(ctx, target, results)
+	s.testImageFetching(ctx, target, results)
+	s.testWebhooks(ctx, target, results)
+	s.testPDFGeneration(ctx, target, results)
+	s.testXMLFeeds(ctx, target, results)
 
-	// Identify URL parameters.
-	params, err := s.IdentifyURLParameters(target)
-	if err != nil {
-		return nil, err
-	}
+	// Test all protocols
+	s.testHTTPProtocol(ctx, target, results)
+	s.testFileProtocol(ctx, target, results)
+	s.testGopherProtocol(ctx, target, results)
+	s.testDictProtocol(ctx, target, results)
+	s.testFTPProtocol(ctx, target, results)
 
-	// Test each parameter for SSRF.
-	for _, param := range params {
-		// Generate a payload.
-		payload := "http://127.0.0.1:8080"
-
-		// Create a new request.
-		req, err := http.NewRequest("GET", fmt.Sprintf("%s?%s=%s", target, param, payload), nil)
-		if err != nil {
-			continue
-		}
-
-		// Perform the request.
-		resp, err := s.client.Do(req)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		// Check if the request was successful.
-		if resp.StatusCode == http.StatusOK {
-			vulnerabilities = append(vulnerabilities, &scanner.Vulnerability{
-				Name:        "SSRF",
-				Description: "A potential SSRF vulnerability was found.",
-				Severity:    "High",
-				Evidence:    fmt.Sprintf("The parameter '%s' appears to be vulnerable to SSRF.", param),
-			})
-		}
-	}
-
-	return vulnerabilities, nil
+	// Cloud metadata endpoints
+	s.testAWSMetadata(ctx, target, results)
+	s.testGCPMetadata(ctx, target, results)
+	s.testAzureMetadata(ctx, target, results)
 }
 
-// IdentifyURLParameters identifies URL parameters.
-func (s *SSRFScanner) IdentifyURLParameters(target string) ([]string, error) {
-	var params []string
-
-	// Get the response from the target URL.
-	resp, err := s.Get(target)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Find all the links on the page.
+func (s *SSRFScanner) testURLParameters(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-
-	return params, nil
 }
 
-// TestInternalNetworks tests for internal networks.
-func (s *SSRFScanner) TestInternalNetworks(target string) (bool, error) {
+func (s *SSRFScanner) testFileInclusion(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// CloudMetadataEndpoints tests for cloud metadata endpoints.
-func (s *SSRFScanner) CloudMetadataEndpoints(target string) (bool, error) {
+func (s *SSRFScanner) testImageFetching(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// DNSCallbackDetection detects DNS callbacks.
-func (s *SSRFScanner) DNSCallbackDetection(target string) (bool, error) {
+func (s *SSRFScanner) testWebhooks(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// BlindSSRFDetection detects blind SSRF vulnerabilities.
-func (s *SSRFScanner) BlindSSRFDetection(target string) (bool, error) {
+func (s *SSRFScanner) testPDFGeneration(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// BypassRestrictions bypasses restrictions.
-func (s *SSRFScanner) BypassRestrictions(payload string) string {
+func (s *SSRFScanner) testXMLFeeds(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// ProtocolSmuggling performs protocol smuggling.
-func (s *SSRFScanner) ProtocolSmuggling(target string) (bool, error) {
+func (s *SSRFScanner) testHTTPProtocol(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// ChainWithRCE chains an SSRF vulnerability with RCE.
-func (s *SSRFScanner) ChainWithRCE(target string) (bool, error) {
+func (s *SSRFScanner) testFileProtocol(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// GenerateCallbackProof generates a proof for a DNS callback.
-func (s *SSRFScanner) GenerateCallbackProof(target string) (string, error) {
+func (s *SSRFScanner) testGopherProtocol(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return "", nil
 }
 
-// NetworkMapping maps the internal network.
-func (s *SSRFScanner) NetworkMapping(target string) (string, error) {
+func (s *SSRFScanner) testDictProtocol(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return "", nil
+}
+
+func (s *SSRFScanner) testFTPProtocol(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SSRFScanner) testAWSMetadata(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SSRFScanner) testGCPMetadata(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *SSRFScanner) testAzureMetadata(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
 }

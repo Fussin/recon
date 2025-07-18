@@ -79,7 +79,37 @@ func (a *AssetMapper) MapAssets(target string) error {
 
 // BuildAssetInventory builds an asset inventory.
 func (a *AssetMapper) BuildAssetInventory(target string) error {
+	// Get subdomains.
+	subdomainEnumerator := NewSubdomainEnumerator(a.db)
+	subdomains, err := subdomainEnumerator.Enumerate(target)
+	if err != nil {
+		return err
+	}
+
+	// Get endpoints.
+	endpointDiscoverer := NewEndpointDiscoverer(a.db)
+	endpoints, err := endpointDiscoverer.Discover(target)
+	if err != nil {
+		return err
+	}
+
+	// Get technologies.
+	technologyFingerprinter := NewTechnologyFingerprinter(a.db)
+	technologies, err := technologyFingerprinter.Fingerprint(target)
+	if err != nil {
+		return err
+	}
+
+	// Get open ports.
+	portScanner := NewPortScanner(a.db)
+	ports, err := portScanner.Scan(target)
+	if err != nil {
+		return err
+	}
+
+	// Save assets to the database.
 	// ...
+
 	return nil
 }
 

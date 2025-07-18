@@ -1,9 +1,7 @@
 package modules
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
+	"context"
 
 	"github.com/autonomouspen/autonomouspen-ai/internal/scanner"
 )
@@ -18,75 +16,77 @@ func NewRCEScanner() *RCEScanner {
 	return &RCEScanner{}
 }
 
-// Scan performs a scan for RCE vulnerabilities.
-func (s *RCEScanner) Scan(target string) ([]*scanner.Vulnerability, error) {
-	var vulnerabilities []*scanner.Vulnerability
+func (s *RCEScanner) Scan(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// Command injection
+	s.testCommandInjection(ctx, target, results)
+	s.testCodeInjection(ctx, target, results)
 
-	// Identify injection points.
-	// ...
+	// Template injection
+	s.testJinja2(ctx, target, results)
+	s.testERB(ctx, target, results)
+	s.testTwig(ctx, target, results)
+	s.testFreemarker(ctx, target, results)
+	s.testVelocity(ctx, target, results)
 
-	// Test each injection point for RCE.
-	// ...
+	// Deserialization
+	s.testJavaDeserialization(ctx, target, results)
+	s.testPHPDeserialization(ctx, target, results)
+	s.testPythonPickle(ctx, target, results)
+	s.testNodeDeserialization(ctx, target, results)
 
-	return vulnerabilities, nil
+	// File upload
+	s.testWebShellUpload(ctx, target, results)
+	s.testPolyglotFiles(ctx, target, results)
 }
 
-// CommandInjectionTests tests for command injection vulnerabilities.
-func (s *RCEScanner) CommandInjectionTests(target string) (bool, error) {
+func (s *RCEScanner) testCommandInjection(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// CodeInjectionDetection detects code injection vulnerabilities.
-func (s *RCEScanner) CodeInjectionDetection(target string) (bool, error) {
+func (s *RCEScanner) testCodeInjection(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// DeserializationAttacks tests for deserialization attacks.
-func (s *RCEScanner) DeserializationAttacks(target string) (bool, error) {
+func (s *RCEScanner) testJinja2(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// TemplateInjection tests for template injection vulnerabilities.
-func (s *RCEScanner) TemplateInjection(target string) (bool, error) {
+func (s *RCEScanner) testERB(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// FileUploadExploits tests for file upload exploits.
-func (s *RCEScanner) FileUploadExploits(target string) (bool, error) {
+func (s *RCEScanner) testTwig(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// HeaderInjection tests for header injection vulnerabilities.
-func (s *RCEScanner) HeaderInjection(target string) (bool, error) {
+func (s *RCEScanner) testFreemarker(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// EnvironmentVariables tests for environment variable vulnerabilities.
-func (s *RCEScanner) EnvironmentVariables(target string) (bool, error) {
+func (s *RCEScanner) testVelocity(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// ContainerEscape tests for container escape vulnerabilities.
-func (s *RCEScanner) ContainerEscape(target string) (bool, error) {
+func (s *RCEScanner) testJavaDeserialization(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
 }
 
-// GenerateReverseShell generates a reverse shell payload.
-func (s *RCEScanner) GenerateReverseShell() string {
+func (s *RCEScanner) testPHPDeserialization(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return ""
 }
 
-// ValidateExecution validates the execution of a payload.
-func (s *RCEScanner) ValidateExecution(target string, payload string) (bool, error) {
+func (s *RCEScanner) testPythonPickle(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
 	// ...
-	return false, nil
+}
+
+func (s *RCEScanner) testNodeDeserialization(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *RCEScanner) testWebShellUpload(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
+}
+
+func (s *RCEScanner) testPolyglotFiles(ctx context.Context, target *scanner.Target, results chan<- *scanner.Vulnerability) {
+	// ...
 }
